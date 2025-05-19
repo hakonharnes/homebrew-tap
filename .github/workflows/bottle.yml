@@ -17,18 +17,15 @@ jobs:
 
       - name: Checkout tap
         uses: actions/checkout@v4
-        with:
-          path: homebrew-tap
-          fetch-depth: 0
 
       - name: Setup tap directory
         run: |
           mkdir -p $(brew --repo)/Library/Taps/hakonharnes
-          ln -s $GITHUB_WORKSPACE/homebrew-tap $(brew --repo)/Library/Taps/hakonharnes/homebrew-tap
+          rm -rf $(brew --repo)/Library/Taps/hakonharnes/homebrew-tap || true
+          ln -s $GITHUB_WORKSPACE $(brew --repo)/Library/Taps/hakonharnes/homebrew-tap
 
       - name: Build bottle
         run: |
-          cd $(brew --repo)/Library/Taps/hakonharnes/homebrew-tap
           brew install --build-bottle hakonharnes/tap/pbctl
 
           # Test if it works
@@ -43,19 +40,18 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: bottles
-          path: $(brew --repo)/Library/Taps/hakonharnes/homebrew-tap/*.bottle.tar.gz
-          if-no-files-found: error
+          path: "*.bottle.tar.gz"
+          if-no-files-found: warn
 
       - name: Generate bottle block
         run: |
-          cd $(brew --repo)/Library/Taps/hakonharnes/homebrew-tap
-          brew bottle --merge --write pbctl*.bottle.json
-          cat Formula/pbctl.rb > $GITHUB_WORKSPACE/updated_formula.rb
+          brew bottle --merge --write --no-commit *.bottle.json
+          cp $(brew --repo)/Library/Taps/hakonharnes/homebrew-tap/Formula/pbctl.rb updated_formula.rb
           echo "Bottle block generated. Here is the updated formula:"
-          cat $GITHUB_WORKSPACE/updated_formula.rb
+          cat updated_formula.rb
 
       - name: Upload updated formula
         uses: actions/upload-artifact@v4
         with:
           name: updated-formula
-          path: $GITHUB_WORKSPACE/updated_formula.rb
+          path: updated_formula.rb
