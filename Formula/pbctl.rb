@@ -6,12 +6,26 @@ class Pbctl < Formula
   license "MIT"
   head "https://github.com/hakonharnes/pbctl.git", branch: "main"
 
+  bottle do
+    root_url "https://github.com/hakonharnes/homebrew-tap/releases/download/pbctl-0.1.2"
+    sha256 cellar: :any_skip_relocation, arm64_sonoma: "PLACEHOLDER_HASH"
+    sha256 cellar: :any_skip_relocation, ventura: "PLACEHOLDER_HASH"
+    sha256 cellar: :any_skip_relocation, monterey: "PLACEHOLDER_HASH"
+  end
+
   depends_on :macos
   depends_on "swift"
+  depends_on "libmagic"
 
   def install
     system "swift", "build", "--disable-sandbox", "-c", "release"
     bin.install ".build/release/pbctl"
+    
+    # Ensure resources are properly installed
+    bundle_path = Dir.glob(".build/**/release/CLibmagic_MagicWrapper.bundle").first
+    if bundle_path
+      prefix.install bundle_path
+    end
   end
 
   test do
