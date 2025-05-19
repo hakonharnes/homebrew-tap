@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - "Formula/pbctl.rb"
+      - ".github/workflows/ci.yml"
   workflow_dispatch:
 
 jobs:
