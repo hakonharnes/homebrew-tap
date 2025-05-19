@@ -10,17 +10,20 @@ class Pbctl < Formula
 
   def install
     system "swift", "build", "--disable-sandbox", "-c", "release"
-
-    libexec.install ".build/release/pbctl"
-    libexec.install ".build/release/CLibmagic_MagicWrapper.bundle"
-
+    libexec.install Dir[".build/release/pbctl"]
+    libexec.install Dir[".build/release/*MagicWrapper*.bundle"]
     (bin/"pbctl").write <<~SH
-      #!/bin/bash
+      #!/usr/bin/env bash
       exec "#{libexec}/pbctl" "$@"
     SH
   end
 
+  bottle do
+    # NOTE: the workflow below overwrites this block on every tag
+    # The sha256 lines will be inserted automatically.
+  end
+
   test do
-    assert_match "pbctl 0.1", shell_output("#{bin}/pbctl --version")
+    assert_match "pbctl", shell_output("#{bin}/pbctl --version")
   end
 end
