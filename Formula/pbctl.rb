@@ -1,8 +1,8 @@
 class Pbctl < Formula
   desc "Command-line interface to the MacOS pasteboard"
   homepage "https://github.com/hakonharnes/pbctl"
-  url "https://github.com/hakonharnes/pbctl/archive/refs/tags/v0.1.1.tar.gz"
-  sha256 "70a48c56ed0b38d2e28e484d6f2b9d4a17f69da98cfa2a738fe6074454172736"
+  url "https://github.com/hakonharnes/pbctl/archive/refs/tags/v0.1.2.tar.gz"
+  sha256 "7cae141577b2b74cd8245527bac3ab483e2e342084de73e29bce7e859a0b7706"
   license "MIT"
   head "https://github.com/hakonharnes/pbctl.git", branch: "main"
 
