@@ -1,27 +1,26 @@
 class Pbctl < Formula
-  desc "Command-line interface to the MacOS pasteboard"
+  desc     "Command-line interface to the macOS pasteboard"
   homepage "https://github.com/hakonharnes/pbctl"
-  url "https://github.com/hakonharnes/pbctl/archive/refs/tags/v0.1.2.tar.gz"
-  sha256 "7cae141577b2b74cd8245527bac3ab483e2e342084de73e29bce7e859a0b7706"
-  license "MIT"
-  head "https://github.com/hakonharnes/pbctl.git", branch: "main"
+  url      "https://github.com/hakonharnes/pbctl/archive/refs/tags/v0.1.2.tar.gz"
+  sha256   "7cae141577b2b74cd8245527bac3ab483e2e342084de73e29bce7e859a0b7706"
+  license  "MIT"
+  head     "https://github.com/hakonharnes/pbctl.git", branch: "main"
 
   depends_on :macos
-  depends_on "swift"
-  depends_on "libmagic"
 
   def install
     system "swift", "build", "--disable-sandbox", "-c", "release"
-    bin.install ".build/release/pbctl"
-    
-    # Ensure resources are properly installed
-    bundle_path = Dir.glob(".build/**/release/CLibmagic_MagicWrapper.bundle").first
-    if bundle_path
-      prefix.install bundle_path
-    end
+
+    libexec.install ".build/release/pbctl"
+    libexec.install ".build/release/CLibmagic_MagicWrapper.bundle"
+
+    (bin/"pbctl").write <<~SH
+      #!/bin/bash
+      exec "#{libexec}/pbctl" "$@"
+    SH
   end
 
   test do
-    system "#{bin}/pbctl", "--version"
+    assert_match "pbctl 0.1", shell_output("#{bin}/pbctl --version")
   end
 end
