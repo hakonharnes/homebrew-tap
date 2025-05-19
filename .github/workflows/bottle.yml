@@ -1,0 +1,61 @@
+name: Build and Upload Bottles
+
+on:
+  push:
+    paths:
+      - "Formula/pbctl.rb"
+      - ".github/workflows/bottle.yml"
+  workflow_dispatch:
+
+jobs:
+  bottle:
+    runs-on: macos-latest
+    steps:
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+
+      - name: Checkout tap
+        uses: actions/checkout@v4
+        with:
+          path: homebrew-tap
+          fetch-depth: 0
+
+      - name: Setup tap directory
+        run: |
+          mkdir -p $(brew --repo)/Library/Taps/hakonharnes
+          ln -s $GITHUB_WORKSPACE/homebrew-tap $(brew --repo)/Library/Taps/hakonharnes/homebrew-tap
+
+      - name: Build bottle
+        run: |
+          cd $(brew --repo)/Library/Taps/hakonharnes/homebrew-tap
+          brew install --build-bottle hakonharnes/tap/pbctl
+
+          # Test if it works
+          echo "Testing pbctl..." 
+          echo "Hello World" | pbctl
+          pbctl paste || true
+
+          # Create bottle
+          brew bottle hakonharnes/tap/pbctl --root-url="https://github.com/hakonharnes/homebrew-tap/releases/download/pbctl-0.1.2"
+
+      - name: Upload bottle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bottles
+          path: $(brew --repo)/Library/Taps/hakonharnes/homebrew-tap/*.bottle.tar.gz
+          if-no-files-found: error
+
+      - name: Generate bottle block
+        run: |
+          cd $(brew --repo)/Library/Taps/hakonharnes/homebrew-tap
+          brew bottle --merge --write pbctl*.bottle.json
+          cat Formula/pbctl.rb > $GITHUB_WORKSPACE/updated_formula.rb
+          echo "Bottle block generated. Here is the updated formula:"
+          cat $GITHUB_WORKSPACE/updated_formula.rb
+
+      - name: Upload updated formula
+        uses: actions/upload-artifact@v4
+        with:
+          name: updated-formula
+          path: $GITHUB_WORKSPACE/updated_formula.rb
