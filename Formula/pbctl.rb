@@ -10,8 +10,8 @@ class Pbctl < Formula
 
   def install
     system "swift", "build", "--disable-sandbox", "-c", "release"
-    libexec.install Dir[".build/release/pbctl"]
-    libexec.install Dir[".build/release/*MagicWrapper*.bundle"]
+    libexec.install ".build/release/pbctl"
+    libexec.install ".build/release/*MagicWrapper*.bundle"
     (bin/"pbctl").write <<~SH
       #!/usr/bin/env bash
       exec "#{libexec}/pbctl" "$@"
