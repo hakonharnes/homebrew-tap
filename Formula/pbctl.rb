@@ -18,11 +18,6 @@ class Pbctl < Formula
     SH
   end
 
-  bottle do
-    # NOTE: the workflow below overwrites this block on every tag
-    # The sha256 lines will be inserted automatically.
-  end
-
   test do
     assert_match "pbctl", shell_output("#{bin}/pbctl --version")
   end

@@ -1,0 +1,32 @@
+name: brew test-bot
+
+on:
+  pull_request:
+    paths:
+      - "Formula/**"
+  workflow_dispatch:
+
+jobs:
+  matrix-test:
+    strategy:
+      matrix:
+        # Intel runner builds an x86_64 bottle,
+        # Apple-silicon runner builds arm64.
+        os: [macos-12, macos-14]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Homebrew maintainers keep this action up-to-date
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+
+      - name: Run brew test-bot
+        env:
+          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.HOMEBREW_GITHUB_API_TOKEN || github.token }}
+        run: |
+          brew test-bot \
+            --tap="$GITHUB_REPOSITORY" \
+            --only-formulae \             # test only what changed
+            --tap-new-commit              # auto-commit bottle block
