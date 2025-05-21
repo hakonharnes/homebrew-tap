@@ -5,7 +5,7 @@ Homebrew formulae that allows installation of my software through the [Homebrew]
 ## Installation
 
 ```sh
-brew tap hakon/tap
+brew tap hakonharnes/tap
 brew install <formula>
 ```
 
