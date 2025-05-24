@@ -7,11 +7,11 @@ class Pbctl < Formula
   head     "https://github.com/hakonharnes/pbctl.git", branch: "main"
 
   bottle do
-    root_url "https://github.com/hakonharnes/homebrew-tap/releases/download/v0.4.7"
-    rebuild 2
-    sha256 cellar: :any, arm64_sequoia: "b7676b3cbb997674cec56013a65746b99fe7d5eebd6875ac2d96ef42f1d96c6c"
-    sha256 cellar: :any, arm64_sonoma:  "4fc0941bcce89698ec22b19013f53871d8497abeb72e30b4e2118e3529debd07"
-    sha256 cellar: :any, ventura:       "c282d47f19edaf192ee8dcf7d928309336510cc250106b676b8c04a7b9d91f86"
+    root_url "https://github.com/hakonharnes/homebrew-tap/releases/download/v0.4.8"
+    rebuild 3
+    sha256 cellar: :any, arm64_sequoia: "18b27762837cd3475fb19d9c30a27ad9c47da87e8998532d1543a97d2696b365"
+    sha256 cellar: :any, arm64_sonoma:  "25ef8a4a2169c16884817d16d2a0d68fd798c52fde503ecd66fceee4adf32952"
+    sha256 cellar: :any, ventura:       "8f07915195a617a4ae20f97e3f51da04634fb3dd4a5d45ae81a14d6159777839"
   end
 
   depends_on :macos
