@@ -46,6 +46,10 @@ jobs:
             --root-url="https://github.com/hakonharnes/homebrew-tap/releases/download/${VERSION}" \
             pbctl
 
+          for f in pbctl--*.bottle.*; do
+            mv "$f" "$(echo "$f" | sed 's/pbctl--/pbctl-/')"
+          done
+
       - name: Upload bottle + JSON
         uses: actions/upload-artifact@v4
         with:
