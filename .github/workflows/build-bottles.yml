@@ -9,8 +9,12 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
+  # -------------------------------------------------------------------
+  # 1. Build bottles on macOS 13, 14, 15 and upload them as an artifact
+  # -------------------------------------------------------------------
   build-bottles:
     strategy:
       matrix:
@@ -23,26 +27,32 @@ jobs:
       - name: Set up Homebrew
         uses: Homebrew/actions/setup-homebrew@master
 
-      # Install the same Swift toolchain the formula declares as :build
-      - name: Install Swift 6
+      - name: Install Swift 6 toolchain
         run: brew install swift
 
-      - name: Build bottle
+      - name: Build & bottle
+        env:
+          # Stop Homebrew from upgrading random dependents (fixes macOS-13)
+          HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
         run: |
           VERSION=$(grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' Formula/pbctl.rb | head -1)
 
-          # Build and bottle
           brew install --build-bottle Formula/pbctl.rb
           brew bottle --json \
             --root-url="https://github.com/hakonharnes/homebrew-tap/releases/download/${VERSION}" \
             pbctl
 
-      - name: Upload bottle
+      - name: Upload bottle & JSON
         uses: actions/upload-artifact@v4
         with:
-          name: pbctl-bottle-${{ matrix.os }}
-          path: pbctl--*.bottle.*.tar.gz
+          name: pbctl-bottles-${{ matrix.os }}
+          path: |
+            pbctl--*.bottle.*.tar.gz
+            pbctl--*.bottle.json
 
+  # ---------------------------------------------------
+  # 2. Attach bottles to the GitHub Release (or create)
+  # ---------------------------------------------------
   upload-bottles:
     needs: build-bottles
     runs-on: ubuntu-latest
@@ -53,29 +63,71 @@ jobs:
       - name: Download bottles
         uses: actions/download-artifact@v4
         with:
-          pattern: pbctl-bottle-*
+          pattern: pbctl-bottles-*
           merge-multiple: true
 
       - name: Get version
         id: version
         run: |
-          VERSION=$(grep -oP 'v\d+\.\d+\.\d+' Formula/pbctl.rb | head -1)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          VERSION=$(grep -oP 'v\\d+\\.\\d+\\.\\d+' Formula/pbctl.rb | head -1)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Create Release
+      - name: Create or update Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           VERSION="${{ steps.version.outputs.version }}"
 
-          # If release exists, just upload; otherwise create it
           if gh release view "${VERSION}" &>/dev/null; then
-            echo "Release ${VERSION} already exists, uploading bottles..."
-            gh release upload "${VERSION}" pbctl--*.bottle.*.tar.gz --clobber
+            echo "Release ${VERSION} exists – uploading bottles"
+            gh release upload "${VERSION}" pbctl--*.bottle.*.tar.gz pbctl--*.bottle.json --clobber
           else
-            echo "Creating new release ${VERSION}..."
+            echo "Creating release ${VERSION}"
             gh release create "${VERSION}" \
               --title "pbctl ${VERSION} bottles" \
               --notes "Homebrew bottles for pbctl ${VERSION}" \
-              pbctl--*.bottle.*.tar.gz
+              pbctl--*.bottle.*.tar.gz \
+              pbctl--*.bottle.json
           fi
+
+  # ------------------------------------------------------------------
+  # 3. Merge the bottle block back into Formula/pbctl.rb and push
+  # ------------------------------------------------------------------
+  merge-bottles:
+    needs: upload-bottles
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download bottle JSONs
+        uses: actions/download-artifact@v4
+        with:
+          pattern: pbctl-bottles-*
+          merge-multiple: true
+
+      - name: Install Homebrew (Linuxbrew) – for `brew bottle --merge`
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential curl file git
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          echo "brew path is $(which brew)"
+
+      - name: Merge bottle spec into formula
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+        run: |
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          brew bottle --merge --write --no-commit pbctl--*.bottle.json
+
+      - name: Commit & push formula with bottles
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add Formula/pbctl.rb
+          git commit -m "chore(bottles): add pbctl bottles [skip bottles]"
+          git push
