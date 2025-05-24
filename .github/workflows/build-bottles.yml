@@ -1,0 +1,74 @@
+name: Build Bottles
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Formula/pbctl.rb'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-bottles:
+    strategy:
+      matrix:
+        os: [macos-12, macos-13, macos-14]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+      
+      - name: Build bottle
+        run: |
+          # Get version from formula
+          VERSION=$(grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' Formula/pbctl.rb | head -1)
+          
+          # Build bottle
+          brew install --build-bottle Formula/pbctl.rb
+          brew bottle --json --root-url="https://github.com/hakonharnes/homebrew-tap/releases/download/${VERSION}" pbctl
+      
+      - name: Upload bottle
+        uses: actions/upload-artifact@v4
+        with:
+          name: pbctl-bottle-${{ matrix.os }}
+          path: pbctl--*.bottle.*.tar.gz
+
+  upload-bottles:
+    needs: build-bottles
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download bottles
+        uses: actions/download-artifact@v4
+        with:
+          pattern: pbctl-bottle-*
+          merge-multiple: true
+      
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(grep -oP 'v\d+\.\d+\.\d+' Formula/pbctl.rb | head -1)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+      
+      - name: Create Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          
+          # Check if release exists
+          if gh release view "${VERSION}" &>/dev/null; then
+            echo "Release ${VERSION} already exists, uploading bottles..."
+            gh release upload "${VERSION}" pbctl--*.bottle.*.tar.gz --clobber
+          else
+            echo "Creating new release ${VERSION}..."
+            gh release create "${VERSION}" \
+              --title "pbctl ${VERSION} bottles" \
+              --notes "Homebrew bottles for pbctl ${VERSION}" \
+              pbctl--*.bottle.*.tar.gz
+          fi

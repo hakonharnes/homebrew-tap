@@ -12,9 +12,6 @@ permissions:
 jobs:
   update-formula:
     runs-on: ubuntu-latest
-    outputs:
-      updated: ${{ steps.check.outputs.updated }}
-      version: ${{ steps.check.outputs.version }}
     steps:
       - uses: actions/checkout@v4
       
@@ -56,59 +53,27 @@ jobs:
       
       - name: Create Pull Request
         if: steps.check.outputs.updated == 'true'
-        uses: peter-evans/create-pull-request@v5
-        with:
-          commit-message: "chore: update pbctl to ${{ steps.check.outputs.version }}"
-          title: "Update pbctl to ${{ steps.check.outputs.version }}"
-          body: "This PR updates pbctl to version ${{ steps.check.outputs.version }}"
-          branch: update-pbctl-${{ steps.check.outputs.version }}
-
-  build-bottles:
-    needs: update-formula
-    if: needs.update-formula.outputs.updated == 'true'
-    strategy:
-      matrix:
-        os: [macos-12, macos-13, macos-14]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: update-pbctl-${{ needs.update-formula.outputs.version }}
-      
-      - name: Set up Homebrew
-        uses: Homebrew/actions/setup-homebrew@master
-      
-      - name: Build bottle
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          brew tap hakonharnes/tap
-          brew install --build-bottle hakonharnes/tap/pbctl
-          brew bottle --json --root-url=https://github.com/hakonharnes/homebrew-tap/releases/download/${{ needs.update-formula.outputs.version }} hakonharnes/tap/pbctl
-      
-      - name: Upload bottle
-        uses: actions/upload-artifact@v4
-        with:
-          name: pbctl-${{ matrix.os }}
-          path: pbctl--*.bottle.*.tar.gz
-
-  upload-bottles:
-    needs: [update-formula, build-bottles]
-    if: needs.update-formula.outputs.updated == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: update-pbctl-${{ needs.update-formula.outputs.version }}
-      
-      - name: Download bottles
-        uses: actions/download-artifact@v4
-        with:
-          pattern: pbctl-*
-          merge-multiple: true
-      
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ needs.update-formula.outputs.version }}
-          name: pbctl ${{ needs.update-formula.outputs.version }} bottles
-          files: pbctl--*.bottle.*.tar.gz
-          token: ${{ secrets.GITHUB_TOKEN }}
+          VERSION="${{ steps.check.outputs.version }}"
+          BRANCH="update-pbctl-${VERSION}"
+          
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Create branch and commit
+          git checkout -b "${BRANCH}"
+          git add Formula/pbctl.rb
+          git commit -m "chore: update pbctl to ${VERSION}"
+          
+          # Push branch
+          git push origin "${BRANCH}"
+          
+          # Create PR using gh CLI
+          gh pr create \
+            --title "Update pbctl to ${VERSION}" \
+            --body "This PR updates pbctl to version ${VERSION}" \
+            --base main \
+            --head "${BRANCH}"
