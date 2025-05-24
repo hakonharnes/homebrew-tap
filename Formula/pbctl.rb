@@ -6,6 +6,14 @@ class Pbctl < Formula
   license  "MIT"
   head     "https://github.com/hakonharnes/pbctl.git", branch: "main"
 
+  bottle do
+    root_url "https://github.com/hakonharnes/homebrew-tap/releases/download/v0.4.3"
+    rebuild 1
+    sha256 cellar: :any, arm64_sequoia: "3024910ba6918505edeedcf2b20d9ec9f5ec10b8614aa967e2af76950923538c"
+    sha256 cellar: :any, arm64_sonoma:  "523cbfa4cc3b1208702ea147c4f70dbf4bb54314c7e9aa4ca5ee08d87a2297c8"
+    sha256 cellar: :any, ventura:       "8c43a32494b4056325309c2661021492c7607035dc02bd51c481593238cdbc76"
+  end
+
   depends_on :macos
   depends_on "swift" => :build
 
