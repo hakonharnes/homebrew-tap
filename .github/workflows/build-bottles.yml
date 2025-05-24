@@ -122,6 +122,8 @@ jobs:
         run: |
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
           brew bottle --merge --write --no-commit pbctl--*.bottle.json
+          TAP_PATH=$(brew --repository hakonharnes/tap)
+          cp "$TAP_PATH/Formula/pbctl.rb" Formula/pbctl.rb
 
       - name: Commit & push updated formula
         env:
@@ -129,8 +131,8 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -u
 
+          git add Formula/pbctl.rb
           if git diff --cached --quiet; then
             echo "Formula already up-to-date — nothing to commit"
             exit 0
