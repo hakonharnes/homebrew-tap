@@ -69,16 +69,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download all platform bottles
+      - name: Download bottles
         uses: actions/download-artifact@v4
         with:
           pattern: pbctl-bottles-*
           merge-multiple: true
 
-      - name: Extract version
+      - name: Get version
         id: version
         run: |
-          VERSION=$(grep -oP 'v\\d+\\.\\d+\\.\\d+' Formula/pbctl.rb | head -1)
+          VERSION=$(grep -oP 'v\d+\.\d+\.\d+' Formula/pbctl.rb | head -1)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Create / update release
