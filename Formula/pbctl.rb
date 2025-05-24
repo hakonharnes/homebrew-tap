@@ -1,7 +1,7 @@
 class Pbctl < Formula
   desc     "Command-line interface to the macOS pasteboard"
   homepage "https://github.com/hakonharnes/pbctl"
-  url      "https://github.com/hakonharnes/pbctl/archive/refs/tags/v0.3.1.tar.gz"
+  url      "https://github.com/hakonharnes/pbctl/archive/refs/tags/v0.3.2.tar.gz"
   sha256   "256b6345ce799e2b2990a9c43127345909fe3a3ab44bbdd962781c4efb47d6c8"
   license  "MIT"
   head     "https://github.com/hakonharnes/pbctl.git", branch: "main"
@@ -21,6 +21,6 @@ class Pbctl < Formula
   end
 
   test do
-    assert_match "pbctl 0.3", shell_output("#{bin}/pbctl --version")
+    assert_match "pbctl 0.3.2", shell_output("#{bin}/pbctl --version")
   end
 end
