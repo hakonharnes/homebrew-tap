@@ -32,6 +32,16 @@ jobs:
           # Get version from formula
           VERSION=$(grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' Formula/pbctl.rb | head -1)
           
+          # Set Swift path based on OS/arch
+          if [[ "${{ matrix.os }}" == "macos-13" ]]; then
+            export PATH="/Users/runner/hostedtoolcache/swift-macOS/6.0.3/x64/usr/bin:$PATH"
+          else
+            export PATH="/Users/runner/hostedtoolcache/swift-macOS/6.0.3/arm64/usr/bin:$PATH"
+          fi
+          
+          # Verify Swift version
+          swift --version
+          
           # Build bottle
           brew install --build-bottle Formula/pbctl.rb
           brew bottle --json --root-url="https://github.com/hakonharnes/homebrew-tap/releases/download/${VERSION}" pbctl
