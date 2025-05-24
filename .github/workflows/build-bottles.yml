@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   # ------------------------------------------------------------
-  # 1. Build bottles on macOS 13, 14, and 15
+  # 1. Build bottles on macOS 13, 14 and 15
   # ------------------------------------------------------------
   build-bottles:
     strategy:
@@ -27,25 +27,16 @@ jobs:
       - name: Set up Homebrew
         uses: Homebrew/actions/setup-homebrew@master
 
-      # -----------------------------------------------------------------
-      # Remove Apple-framework Python shims that break Homebrew’s linker
-      # THEN install Swift 6 **without** its declared deps (python@3.13)
-      # -----------------------------------------------------------------
       - name: Prepare toolchain
         run: |
-          # These symlinks exist only on the macOS-13 image (Intel runner)
           sudo rm -f /usr/local/bin/{idle3*,pip3*,pydoc3*,python3*} || true
-          
-          # Install Swift 6, ignoring its python@3.13 dependency
           brew install --ignore-dependencies swift
 
       - name: Build & bottle pbctl
         env:
-          # Skip the “upgrade dependents” scan (faster; avoids python again)
           HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
         run: |
           VERSION=$(grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' Formula/pbctl.rb | head -1)
-
           brew install --build-bottle Formula/pbctl.rb
           brew bottle --json \
             --root-url="https://github.com/hakonharnes/homebrew-tap/releases/download/${VERSION}" \
@@ -60,7 +51,7 @@ jobs:
             pbctl--*.bottle.json
 
   # ------------------------------------------------------------
-  # 2. Attach bottles to the GitHub Release (create if missing)
+  # 2. Attach bottles to the GitHub Release
   # ------------------------------------------------------------
   upload-bottles:
     needs: build-bottles
@@ -98,7 +89,7 @@ jobs:
           fi
 
   # ------------------------------------------------------------
-  # 3. Merge the bottle stanza into Formula/pbctl.rb and push
+  # 3. Merge the bottle stanza into the formula and push
   # ------------------------------------------------------------
   merge-bottles:
     needs: upload-bottles
@@ -119,6 +110,11 @@ jobs:
           sudo apt-get install -y build-essential curl file git
           /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+
+      - name: Tap local repo
+        run: |
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          brew tap hakonharnes/tap "$(pwd)"
 
       - name: Merge bottle block
         env:
