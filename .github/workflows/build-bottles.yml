@@ -47,8 +47,8 @@ jobs:
         with:
           name: pbctl-bottles-${{ matrix.os }}
           path: |
-            pbctl--*.bottle.*.tar.gz
-            pbctl--*.bottle.json
+            pbctl-*.bottle.*.tar.gz
+            pbctl-*.bottle.json
 
   # ------------------------------------------------------------
   # 2. Attach bottles to the GitHub Release
@@ -77,7 +77,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          FILES="pbctl--*.bottle.*.tar.gz pbctl--*.bottle.json"
+          FILES="pbctl-*.bottle.*.tar.gz pbctl-*.bottle.json"
 
           if gh release view "$VERSION" &>/dev/null; then
             gh release upload "$VERSION" $FILES --clobber
@@ -121,7 +121,7 @@ jobs:
           HOMEBREW_NO_AUTO_UPDATE: 1
         run: |
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-          brew bottle --merge --write --no-commit pbctl--*.bottle.json
+          brew bottle --merge --write --no-commit pbctl-*.bottle.json
           TAP_PATH=$(brew --repository hakonharnes/tap)
           cp "$TAP_PATH/Formula/pbctl.rb" Formula/pbctl.rb
 
