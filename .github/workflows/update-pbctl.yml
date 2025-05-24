@@ -68,12 +68,16 @@ jobs:
           git add Formula/pbctl.rb
           git commit -m "chore: update pbctl to ${VERSION}"
           
-          # Push branch
-          git push origin "${BRANCH}"
+          # Push branch (force to handle existing branches)
+          git push -f origin "${BRANCH}"
           
-          # Create PR using gh CLI
-          gh pr create \
-            --title "Update pbctl to ${VERSION}" \
-            --body "This PR updates pbctl to version ${VERSION}" \
-            --base main \
-            --head "${BRANCH}"
+          # Create PR using gh CLI (check if PR already exists)
+          if gh pr list --head "${BRANCH}" --state open | grep -q .; then
+            echo "PR already exists for ${BRANCH}"
+          else
+            gh pr create \
+              --title "Update pbctl to ${VERSION}" \
+              --body "This PR updates pbctl to version ${VERSION}" \
+              --base main \
+              --head "${BRANCH}"
+          fi
