@@ -11,16 +11,18 @@ permissions:
   contents: write
 
 jobs:
-  # NOTE: Bottle building requires Swift 6.0+ for pbctl v0.3.2+
-  # GitHub Actions runners only have Swift 5.10 as of May 2024
-  # Bottles must be built locally until runners are updated
   build-bottles:
     strategy:
       matrix:
-        os: [macos-12, macos-13, macos-14]
+        os: [macos-13, macos-14, macos-15]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Setup Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: "6.0"
       
       - name: Set up Homebrew
         uses: Homebrew/actions/setup-homebrew@master
