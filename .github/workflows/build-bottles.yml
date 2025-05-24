@@ -33,14 +33,20 @@ jobs:
           VERSION=$(grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' Formula/pbctl.rb | head -1)
           
           # Set Swift path based on OS/arch
-          if [[ "${{ matrix.os }}" == "macos-13" ]]; then
-            export PATH="/Users/runner/hostedtoolcache/swift-macOS/6.0.3/x64/usr/bin:$PATH"
+          if [[ "${{ runner.arch }}" == "X64" ]]; then
+            SWIFT_PATH="/Users/runner/hostedtoolcache/swift-macOS/6.0.3/x64/usr/bin"
           else
-            export PATH="/Users/runner/hostedtoolcache/swift-macOS/6.0.3/arm64/usr/bin:$PATH"
+            SWIFT_PATH="/Users/runner/hostedtoolcache/swift-macOS/6.0.3/arm64/usr/bin"
           fi
+          
+          # Override system swift
+          sudo mkdir -p /usr/local/bin
+          sudo ln -sf "${SWIFT_PATH}/swift" /usr/local/bin/swift
+          export PATH="/usr/local/bin:$PATH"
           
           # Verify Swift version
           swift --version
+          which swift
           
           # Build bottle
           brew install --build-bottle Formula/pbctl.rb
