@@ -34,19 +34,24 @@ jobs:
           
           # Set Swift path based on OS/arch
           if [[ "${{ runner.arch }}" == "X64" ]]; then
-            SWIFT_PATH="/Users/runner/hostedtoolcache/swift-macOS/6.0.3/x64/usr/bin"
+            SWIFT_PATH="/Users/runner/hostedtoolcache/swift-macOS/6.0.3/x64"
           else
-            SWIFT_PATH="/Users/runner/hostedtoolcache/swift-macOS/6.0.3/arm64/usr/bin"
+            SWIFT_PATH="/Users/runner/hostedtoolcache/swift-macOS/6.0.3/arm64"
           fi
           
-          # Override system swift
-          sudo mkdir -p /usr/local/bin
-          sudo ln -sf "${SWIFT_PATH}/swift" /usr/local/bin/swift
-          export PATH="/usr/local/bin:$PATH"
+          # Set environment for Homebrew to use our Swift
+          export HOMEBREW_FORCE_BREWED_CURL=1
+          export PATH="${SWIFT_PATH}/usr/bin:$PATH"
+          export SDKROOT="${SWIFT_PATH}/usr/lib/swift/macosx"
+          export TOOLCHAINS=swift
+          
+          # Remove any existing Swift symlinks that might interfere
+          sudo rm -f /usr/local/bin/swift
           
           # Verify Swift version
+          echo "Swift path: $(which swift)"
+          echo "Swift version:"
           swift --version
-          which swift
           
           # Build bottle
           brew install --build-bottle Formula/pbctl.rb
