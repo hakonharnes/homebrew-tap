@@ -7,6 +7,7 @@ class Pbctl < Formula
   head     "https://github.com/hakonharnes/pbctl.git", branch: "main"
 
   depends_on :macos
+  depends_on "swift" => :build
 
   def install
     system "swift", "build", "--disable-sandbox", "-c", "release"

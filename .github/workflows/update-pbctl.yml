@@ -2,7 +2,7 @@ name: Update pbctl Formula
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # Daily at midnight
+    - cron: '0 0 * * *'
   workflow_dispatch:
 
 permissions:
@@ -18,14 +18,12 @@ jobs:
       - name: Check for new release
         id: check
         run: |
-          # Get latest release from pbctl repo
           LATEST_VERSION=$(curl -s https://api.github.com/repos/hakonharnes/pbctl/releases/latest | jq -r .tag_name)
           echo "Latest version: $LATEST_VERSION"
-          
-          # Get current version from formula
+
           CURRENT_VERSION=$(grep -oP 'v\d+\.\d+\.\d+' Formula/pbctl.rb | head -1)
           echo "Current version: $CURRENT_VERSION"
-          
+
           if [ "$LATEST_VERSION" != "$CURRENT_VERSION" ]; then
             echo "updated=true" >> $GITHUB_OUTPUT
             echo "version=$LATEST_VERSION" >> $GITHUB_OUTPUT
@@ -38,17 +36,14 @@ jobs:
         run: |
           VERSION="${{ steps.check.outputs.version }}"
           VERSION_NO_V=${VERSION#v}
-          
-          # Download tarball and calculate SHA256
+
           curl -L "https://github.com/hakonharnes/pbctl/archive/refs/tags/${VERSION}.tar.gz" -o pbctl.tar.gz
           SHA256=$(sha256sum pbctl.tar.gz | cut -d' ' -f1)
-          
-          # Update formula
+
           sed -i "s|archive/refs/tags/v[0-9.]*\.tar\.gz|archive/refs/tags/${VERSION}.tar.gz|" Formula/pbctl.rb
           sed -i "s|sha256   \"[a-f0-9]*\"|sha256   \"${SHA256}\"|" Formula/pbctl.rb
           sed -i "s|pbctl [0-9.]*|pbctl ${VERSION_NO_V}|" Formula/pbctl.rb
-          
-          # Clean up downloaded tarball
+
           rm pbctl.tar.gz
       
       - name: Create Pull Request
@@ -58,20 +53,15 @@ jobs:
         run: |
           VERSION="${{ steps.check.outputs.version }}"
           BRANCH="update-pbctl-${VERSION}"
-          
-          # Configure git
+
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Create branch and commit
+
           git checkout -b "${BRANCH}"
           git add Formula/pbctl.rb
           git commit -m "chore: update pbctl to ${VERSION}"
-          
-          # Push branch (force to handle existing branches)
           git push -f origin "${BRANCH}"
-          
-          # Create PR using gh CLI (check if PR already exists)
+
           if gh pr list --head "${BRANCH}" --state open | grep -q .; then
             echo "PR already exists for ${BRANCH}"
           else

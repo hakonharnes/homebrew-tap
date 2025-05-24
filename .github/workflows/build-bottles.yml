@@ -16,47 +16,27 @@ jobs:
       matrix:
         os: [macos-13, macos-14, macos-15]
     runs-on: ${{ matrix.os }}
+
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Setup Swift
-        uses: swift-actions/setup-swift@v2
-        with:
-          swift-version: "6.0.3"
-      
+
       - name: Set up Homebrew
         uses: Homebrew/actions/setup-homebrew@master
-      
+
+      # Install the same Swift toolchain the formula declares as :build
+      - name: Install Swift 6
+        run: brew install swift
+
       - name: Build bottle
         run: |
-          # Get version from formula
           VERSION=$(grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' Formula/pbctl.rb | head -1)
-          
-          # Set Swift path based on OS/arch
-          if [[ "${{ runner.arch }}" == "X64" ]]; then
-            SWIFT_PATH="/Users/runner/hostedtoolcache/swift-macOS/6.0.3/x64"
-          else
-            SWIFT_PATH="/Users/runner/hostedtoolcache/swift-macOS/6.0.3/arm64"
-          fi
-          
-          # Set environment for Homebrew to use our Swift
-          export HOMEBREW_FORCE_BREWED_CURL=1
-          export PATH="${SWIFT_PATH}/usr/bin:$PATH"
-          export SDKROOT="${SWIFT_PATH}/usr/lib/swift/macosx"
-          export TOOLCHAINS=swift
-          
-          # Remove any existing Swift symlinks that might interfere
-          sudo rm -f /usr/local/bin/swift
-          
-          # Verify Swift version
-          echo "Swift path: $(which swift)"
-          echo "Swift version:"
-          swift --version
-          
-          # Build bottle
+
+          # Build and bottle
           brew install --build-bottle Formula/pbctl.rb
-          brew bottle --json --root-url="https://github.com/hakonharnes/homebrew-tap/releases/download/${VERSION}" pbctl
-      
+          brew bottle --json \
+            --root-url="https://github.com/hakonharnes/homebrew-tap/releases/download/${VERSION}" \
+            pbctl
+
       - name: Upload bottle
         uses: actions/upload-artifact@v4
         with:
@@ -66,28 +46,29 @@ jobs:
   upload-bottles:
     needs: build-bottles
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Download bottles
         uses: actions/download-artifact@v4
         with:
           pattern: pbctl-bottle-*
           merge-multiple: true
-      
+
       - name: Get version
         id: version
         run: |
           VERSION=$(grep -oP 'v\d+\.\d+\.\d+' Formula/pbctl.rb | head -1)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-      
+
       - name: Create Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          
-          # Check if release exists
+
+          # If release exists, just upload; otherwise create it
           if gh release view "${VERSION}" &>/dev/null; then
             echo "Release ${VERSION} already exists, uploading bottles..."
             gh release upload "${VERSION}" pbctl--*.bottle.*.tar.gz --clobber
