@@ -1,0 +1,107 @@
+name: Update pbctl Formula
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Daily at midnight
+  workflow_dispatch:
+
+jobs:
+  update-formula:
+    runs-on: ubuntu-latest
+    outputs:
+      updated: ${{ steps.check.outputs.updated }}
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Check for new release
+        id: check
+        run: |
+          # Get latest release from pbctl repo
+          LATEST_VERSION=$(curl -s https://api.github.com/repos/hakonharnes/pbctl/releases/latest | jq -r .tag_name)
+          echo "Latest version: $LATEST_VERSION"
+          
+          # Get current version from formula
+          CURRENT_VERSION=$(grep -oP 'v\d+\.\d+\.\d+' Formula/pbctl.rb | head -1)
+          echo "Current version: $CURRENT_VERSION"
+          
+          if [ "$LATEST_VERSION" != "$CURRENT_VERSION" ]; then
+            echo "updated=true" >> $GITHUB_OUTPUT
+            echo "version=$LATEST_VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "updated=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Update formula
+        if: steps.check.outputs.updated == 'true'
+        run: |
+          VERSION="${{ steps.check.outputs.version }}"
+          VERSION_NO_V=${VERSION#v}
+          
+          # Download tarball and calculate SHA256
+          curl -L "https://github.com/hakonharnes/pbctl/archive/refs/tags/${VERSION}.tar.gz" -o pbctl.tar.gz
+          SHA256=$(sha256sum pbctl.tar.gz | cut -d' ' -f1)
+          
+          # Update formula
+          sed -i "s|archive/refs/tags/v[0-9.]*\.tar\.gz|archive/refs/tags/${VERSION}.tar.gz|" Formula/pbctl.rb
+          sed -i "s|sha256 \"[a-f0-9]*\"|sha256 \"${SHA256}\"|" Formula/pbctl.rb
+          sed -i "s|pbctl [0-9.]*|pbctl ${VERSION_NO_V}|" Formula/pbctl.rb
+      
+      - name: Create Pull Request
+        if: steps.check.outputs.updated == 'true'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          commit-message: "chore: update pbctl to ${{ steps.check.outputs.version }}"
+          title: "Update pbctl to ${{ steps.check.outputs.version }}"
+          body: "This PR updates pbctl to version ${{ steps.check.outputs.version }}"
+          branch: update-pbctl-${{ steps.check.outputs.version }}
+
+  build-bottles:
+    needs: update-formula
+    if: needs.update-formula.outputs.updated == 'true'
+    strategy:
+      matrix:
+        os: [macos-12, macos-13, macos-14]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: update-pbctl-${{ needs.update-formula.outputs.version }}
+      
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+      
+      - name: Build bottle
+        run: |
+          brew tap hakonharnes/tap
+          brew install --build-bottle hakonharnes/tap/pbctl
+          brew bottle --json --root-url=https://github.com/hakonharnes/homebrew-tap/releases/download/${{ needs.update-formula.outputs.version }} hakonharnes/tap/pbctl
+      
+      - name: Upload bottle
+        uses: actions/upload-artifact@v4
+        with:
+          name: pbctl-${{ matrix.os }}
+          path: pbctl--*.bottle.*.tar.gz
+
+  upload-bottles:
+    needs: [update-formula, build-bottles]
+    if: needs.update-formula.outputs.updated == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: update-pbctl-${{ needs.update-formula.outputs.version }}
+      
+      - name: Download bottles
+        uses: actions/download-artifact@v4
+        with:
+          pattern: pbctl-*
+          merge-multiple: true
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ needs.update-formula.outputs.version }}
+          name: pbctl ${{ needs.update-formula.outputs.version }} bottles
+          files: pbctl--*.bottle.*.tar.gz
+          token: ${{ secrets.GITHUB_TOKEN }}
