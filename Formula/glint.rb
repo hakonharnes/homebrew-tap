@@ -5,7 +5,6 @@ class Glint < Formula
   sha256 "5b63d7f2a376ce1ca46604b06783bdbc1b7e39b9564e815af6b6e1b32c0ba631"
   version "0.1.0"
 
-  depends_on :macos
   depends_on macos: :sonoma
 
   def install
