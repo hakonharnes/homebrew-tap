@@ -1,15 +1,18 @@
 class Glint < Formula
   desc "Lightweight window borders for macOS, inspired by Hyprland"
   homepage "https://github.com/hakonharnes/homebrew-tap"
-  url "https://github.com/hakonharnes/homebrew-tap/releases/download/glint-v0.1.1/glint-0.1.1-macos.tar.gz"
-  sha256 "e07ac8bdab1b6cfd2163c1b7346cc9fb9bbaa9f14cfe60ee55a9ce9cfccf5b68"
-  version "0.1.1"
+  url "https://github.com/hakonharnes/homebrew-tap/releases/download/glint-v0.1.2/glint-0.1.2-macos.tar.gz"
+  sha256 "b60b194e8b9b09b2effc59efe8da16ab376318ff8851c1fc7c9152b78bd7b031"
+  version "0.1.2"
 
   depends_on macos: :sonoma
 
   def install
     bin.install "glint"
     man1.install "glint.1"
+    zsh_completion.install "_glint" if File.exist?("_glint")
+    bash_completion.install "glint.bash" => "glint" if File.exist?("glint.bash")
+    fish_completion.install "glint.fish" if File.exist?("glint.fish")
   end
 
   service do
