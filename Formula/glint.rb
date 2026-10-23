@@ -1,9 +1,9 @@
 class Glint < Formula
   desc "Lightweight window borders for macOS, inspired by Hyprland"
   homepage "https://github.com/hakonharnes/homebrew-tap"
-  url "https://github.com/hakonharnes/homebrew-tap/releases/download/glint-v0.3.1/glint-0.3.1-macos.tar.gz"
-  sha256 "bff94ecd7626133f899efccb909eeedaa7c453b153a6a66b58c932b783d897fc"
-  version "0.3.1"
+  url "https://github.com/hakonharnes/homebrew-tap/releases/download/glint-v0.3.2/glint-0.3.2-macos.tar.gz"
+  sha256 "209e99081519fc6cbb5ecc8d9b7a5a65980b77b991f47ff8797dd439bb5e1c9d"
+  version "0.3.2"
 
   depends_on macos: :sonoma
 
